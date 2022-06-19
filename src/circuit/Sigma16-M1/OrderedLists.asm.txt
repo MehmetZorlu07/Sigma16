@@ -1,0 +1,929 @@
+;--------------------------------------------------------------------
+; Program OrderedLists by Mehmet Zorlu (CS1S)  2328759Z , Lab Group 
+; Date : March 2018
+;
+;
+; This program prints every element in lists stored in the array 
+; called as "List". It searches and prints yes if a certain element 
+; exists in list and prints no if vice versa and deletes a certain 
+; element existing in lists.
+;
+; Status report:
+; The program works and executes fine except for the releasing node
+; part. Deletion is successful but the deleted node is not returned
+; back to the heap.
+;--------------------------------------------------------------------
+
+; The program performs a sequence of operations on ordered lists; the
+; operations include insertion, deletion, and search.  The input is an
+; array of records, where each record contains a code indicating which
+; operation to perform, and arguments for the operation.  The input
+; array is defined statically using data statements.
+
+;********************************************************************
+; High  level algorithm
+;********************************************************************
+
+; program OrderedLists
+
+; The heap is a list constructed in the allocation area
+;    *heap  : Word     ; address of the heap
+;    *avail : Word     ; pointer to the list of available nodes
+;    HeapSize : Int    ; number of nodes in the heap
+;    heaplimit : Int   ; address of end of the heap
+
+; Variables used to traverse the input data and the lists
+;    *p, *q : word
+
+; The input data is an array of records, each specifying an operation
+;    Command : record
+;       code : Int     ; specify which operation to perform
+;       i    : Int     ; index into array of lists
+;       x    : Int     ; value of list element
+
+; The meaning of a command depends on the code:
+;    0  terminate the program
+;    1  insert x into list[i]
+;    2  delete x from list[i]
+;    3  return 1 if list[i] contains x, otherwise 0
+;    4  print the elements of list[i]
+
+; Each element of the array list is a linked list of Nodes
+;    Node : record
+;       value  : Int
+;       *next  : Node
+
+; Iterate over the commands in the input data.  Each command is a
+; record containing three words: the code indicates what operation to
+; perform, i is the index into the array of lists, and x is a data
+; value.  The pointer to the current location in the array is
+; InputPtr.  The iteration terminates when a Terminate command is
+; encountered.
+
+; Initialize
+;    BuildHeap ()
+
+; Execute the commands in the input data
+;    finished := 0
+;    while InputPtr <= InputEnd && not finished do
+;       CurrentCode := (*InputPtr).code
+;       p := list[*InputPtr]     ; linked list
+;       x := (*InputPtr).x      ; value to insert, delete, search
+
+;       case CurrentCode of
+;          0 : <CmdTerminate>
+;          1 : <CmdInsert>
+;          2 : <CmdDelete>
+;          3 : <CmdSearch>
+;          4 : <CmdPrint>
+;          else : <>
+;       InputPtr := InputPtr + sizeof(Command)
+
+; Terminate the program
+;    halt
+
+; <CmdTerminate>
+;    finished := 1
+
+; <CmdInsert>
+; Insert x into list that p points to, maintaining sort ordering
+;    while p /= nil
+;       q := (*p).next
+;       if q = nil || x <= (*q).value
+;          then r := NewNode ()
+;               (*r).value := x
+;               (*r).next := q
+;               (*p).next := r
+;               p := nil
+;          else p := q
+
+; <CmdDelete>
+; Delete first node whose value is x; p is header
+;     p := (*p).next
+;     if p /= nil
+;        then q := (*p).next
+;        if q /= nil
+;           then (*p).next := (*q).next
+;           (*q).next := avail
+;           avail := q
+
+; <CmdSearch>
+; Determine whether x occurs in list p
+;    found := False
+;    p := (*p).next
+;    while p/= nil && not found 
+;       if (*p).value = x
+;          found := True
+;       p:= (*p).next
+;    if found = True
+;       print StringYes
+;    else
+;       print StringNo
+
+; <CmdPrint>
+; Print value field of each node in list p
+;    p := *p.next    
+;    while p /= nil 
+;       print (*p).value
+;       p := (*p).next
+
+
+; Construct list of available nodes
+; procedure BuildHeap ()
+;    p := &heap 
+;    heaplimit := p + HeapSize - sizeof(Node)
+;    avail := p
+;    while p < heaplimit
+;       (*p).value := 0
+;       q := p + sizeof(Node)
+;       (*p).next := q
+;       p := q
+;    (*p).value := 0
+;    (*p).next := 0
+
+;--------------------------------------------------------------------
+; Operations on the heap
+;--------------------------------------------------------------------
+
+; function *NewNode () : Word
+;    if avail = nil
+;      then error "Out of heap"
+;      else r := avail
+;      avail := (*avail).next
+;      return r
+
+; procedure ReleaseNode (*q : Word)
+
+;  *** Your high level code for ReleaseNode goes here ***
+
+;--------------------------------------------------------------------
+; Number conversion
+;--------------------------------------------------------------------
+
+; *** Your high level code for number conversion goes here ***
+
+
+;********************************************************************
+; Low level algorithm
+;********************************************************************
+
+; Initialize
+;    BuildHeap ()
+
+; Execute the commands in the input data
+;    finished := 0
+; CommandLoop
+;    if InputPtr > InputEnd then goto CommandLoopDone
+;    if finished then goto CommandsDone
+;    CurrentCode := (*InputPtr).code
+;    p := list[*InputPtr]      ; linked list
+;    x := (*InputPtr).x        ; value to insert, delete, search
+;    if CurrentCode < = then goto CommandCodeElse
+;    if CurrentCode > 4 then goto CommandCodeElse
+;    goto +CurrentCode
+;    goto CmdTerminate         ; 0
+;    goto CmdInsert            ; 1
+;    goto CmdDelete            ; 2
+;    goto CmdSearch            ; 3
+;    goto CmdPrint             ; 4
+; CommandCodeElse :            ; skip invalid command, nothing to do
+; AfterCmdCase :
+;    InputPtr := InputPtr + sizeof(Command)
+;    goto CommandLoop
+; CommandLoopDone
+
+; CmdTerminate:
+;    finished := 1
+;    goto CmdCaseDone
+
+; CmdInsert:
+; InsertListLoop:
+;    if p = nil then goto InsertListLoopDone
+;    q := (*p).next
+;    if q = nil || x <= (*q).value then goto ILthen
+; InsertListElse
+;    p := q
+;    goto InsertListAfterIf
+; InsertListThen
+;    r := NewNode ()
+;    (*r).value := x
+;    (*r).next := q
+;    (*p).next := r
+;    p := nil
+; InsertListAfterIf
+;    goto InsertListLoop
+; InsertListLoopDone
+;    goto CmdCaseDone
+
+; CmdDelete:
+;    p:= (*p).next
+;    if p = nil then goto DeleteDone
+;    q := (*p).next also (*q).value
+;    if q = nil then goto FoundFalse
+;    (*p).next := (*q).next
+;    (*q).next := avail
+;    avail := q
+; DeleteDone
+;    goto CmdCaseDone
+
+
+; CmdSearch:
+;    found := 0
+;    p := (*p).next
+; SearchLoop
+;    if p = nil goto SearchDone
+;    if x /= (*p).value goto NotFound
+;    found := 1
+; NotFound
+;    p := (*p).next
+;    goto SearchLoop
+; SearchDone
+;    if found = 0 goto PrintNo
+;    print StringYes
+;    goto SearchDone
+; PrintFalse
+;    print StringNo
+; SearchDone
+
+
+; CmdPrint:
+;     p:= *p.next
+; Loop
+;     if p = nil then goto Loopdone
+;     print(*p).value
+;     p := (*p).next
+;     goto Loop
+; Loopdone
+;     goto CmdCaseDone
+
+
+; procedure BuildHeap ()
+;    p := &heap 
+;    heaplimit := p + HeapSize - sizeof(Node)
+;    avail := p
+; BuildHeapLoop
+;    if p >= heaplimit then goto HeapLoopDone
+;    (*p).value := 0
+;    q := p + sizeof(Node)
+;    (*p).next := q
+;    p := q
+;    goto BuildHeapLoop
+; HeapLoopDone
+;    (*p).value := 0
+;    (*p).next := 0
+;    return
+
+; function *NewNode () : Word
+;    if avail /= nil then goto NewNodeElse
+;    write "Out of heap"
+;    halt
+; NewNodeElse
+;    r := avail
+;    avail := (*avail).next
+;    return r
+
+; procedure ReleaseNode (*q : Word)
+
+; *** Your low level code for ReleaseNode goes here ***
+
+; *** Your low level code for converting integer to string goes here,
+; if you choose to do it ***
+
+
+;********************************************************************
+; Assembly language implementation
+;********************************************************************
+
+;--------------------------------------------------------------------
+; Global register usage
+;--------------------------------------------------------------------
+
+; R0 is constant 0
+; R1, R2, R3 are used for parameters and return values
+; R4 - R10 are available for local use
+
+; The following registers are reserved for specific purposes:
+; R13 = return address
+; R14 is stack pointer
+; R15 is transient condition code
+
+;--------------------------------------------------------------------
+; Main program execution starts here
+;--------------------------------------------------------------------
+
+; Initialize the stack
+; Structure of stack frame for main program
+;    1[R14]   origin of next frame
+;    0[R14]   pointer to previous stack frame = nil
+
+    lea    R14,CallStack[R0]   ; initialise stack pointer
+    store  R0,0[R14]           ; previous frame pointer := nil
+
+; Unit testing.  Comment this out for normal execution!  This
+; instruction bypasses the normal program and performs the unit tests.
+
+;    jump   UnitTest[R0]       ; normally should be commented out
+
+; Build the heap
+    jal    R13,BuildHeap[R0]   ; build heap, list R11 = avail
+  
+; Initialize the command loop
+    lea    R5,InputData[R0]    ; R5 := &InputData
+    store  R5,InputPtr[R0]     ; InputPtr := &InputData
+
+CommandLoop
+    load   R5,InputPtr[R0]     ; R5 := InputPtr
+    load   R4,0[R5]            ; R4 := *InputPtr.code
+; Check for invalid code    
+    cmp    R4,R0               ; compare (*InputPtr).code, 0
+    jumplt CmdDone[R0]         ; skip invalid code (negative)
+    lea    R6,4[R0]            ; maximum valid code
+    cmp    R4,R6               ; compare code with max valid code
+    jumpgt CmdDone[R0]         ; skip invalid code (too large)
+
+; Load command arguments
+; R1 = p : *Node   address of list header
+; R2 = x : Int     value to insert into p
+    load   R1,1[R5]            ; R1 := i = cmd argument
+    add    R1,R1,R1            ; R1 := 2*i (element size is 2)
+    lea    R1,list[R1]         ; R1 := &list[i] = pointer to the list
+    load   R2,2[R5]            ; R2 := (*InputPtr).value to insert
+; Jump to operation specified by code
+    add    R4,R4,R4            ; code := 2*code
+    lea    R5,CmdJumpTable[R0] ; R5 := pointer to jump table
+    add    R4,R5,R4            ; address of jump to operation
+    jump   0[R4]               ; jump to jump to operation
+CmdJumpTable
+    jump   CmdTerminate[R0]    ; code 0: terminate the program
+    jump   CmdInsert[R0]       ; code 1: insert
+    jump   CmdDelete[R0]       ; code 2: delete
+    jump   CmdSearch[R0]       ; code 3: search
+    jump   CmdPrint[R0]        ; code 4: print
+
+CmdDone
+    load   R5,InputPtr[R0]
+    lea    R6,3[R0]
+    add    R5,R5,R6
+    store  R5,InputPtr[R0]
+    jump   CommandLoop[R0]
+
+CmdTerminate
+    trap   R0,R0,R0            ; terminate execution
+
+;--------------------------------------------------------------------
+; CmdInsert
+;--------------------------------------------------------------------
+
+; arguments:
+;   R1 = p : *Node   address of list header
+;   R2 = x : Int     value to insert into p
+
+; Register usage
+; R1 = argument &list - pointer to the list
+; R2 = argument x
+; R5 = x    - value to insert into the list
+; R6 = p    - current node in the list
+; R7 = q    - next node in the list
+; R8 = r    - newly allocated node
+; R9 = temp
+; R13 = return address
+
+CmdInsert
+     add    R5,R2,R0         ; R5 := x = value to insert into list
+     add    R6,R1,R0         ; R6 := p = address of list
+ILloop
+; if p = nil then goto ILloopDone
+     cmp    R6,R0            ; compare p, nil
+     jumpeq ILloopDone[R0]   ; if p = nil then goto ILloopDone
+     load   R7,1[R6]         ; q := (*p).next
+; if q = nil || x <= (*q).value then goto ILthen
+     cmp    R7,R0            ; compare q, nil
+     jumpeq ILthen[R0]       ; if p = nil then goto ILthen
+     load   R9,0[R7]         ; temp := (*q).value
+     cmp    R5,R9            ; compare x, (*q).value
+     jumple ILthen[R0]       ; if x <= (*q).value then goto ILthen
+ILelse
+     add    R6,R7,R0         ; p := q
+     jump   ILafterIf[R0]    ; goto ILafterIf
+ILthen
+     store   R14,1[R14]      ; point to current frame
+     lea     R14,1[R14]      ; push stack frame
+     jal    R13,NewNode[R0]  ; R1 := NewNode () 
+     add    R8,R1,R0         ; r := NewNode ()
+     store  R5,0[R8]         ; (*r).value := x
+     store  R7,1[R8]         ; (*r).next := q
+     store  R8,1[R6]         ; (*p).next := r
+     add    R6,R0,R0         ; p := nil
+ILafterIf
+     jump   ILloop[R0]       ; goto ILloop
+ILloopDone
+     jump   CmdDone[R0]      ; go to finish command
+
+;--------------------------------------------------------------------
+; CmdDelete
+;--------------------------------------------------------------------
+
+; Delete the first node whose value is x.  If none is found,
+; do nothing.
+
+CmdDelete
+    load    R1,1[R1]                ; R1 := (*p).next
+DeleteLoop
+; if p := nil go to DeleteDone
+    cmp     R1,R0                   ; compare p, nil
+    jumpeq  DeleteDone[R0]          ; if p = nil then go to DeleteDone
+    load    R7,1[R1]                ; R7 := (*q).next
+    load    R7,0[R7]                ; R7 := (*q).value
+; if (*q).value /= x go to NotFound 
+    cmp     R7,R2                   ; compare R7, R2
+    jumpne  NotFound[R0]
+; Value found
+    load    R8,1[R1]                ; R8 = (*p).next
+    lea     R5,1[R1]                ; R5 = (*p).next
+    load    R6,1[R8]                ; R6 = (*q).next
+    store   R6,0[R5]                ; (*q).next = (*p).next
+    load    R1,1[R7]                ; p.next = q.next
+NotFound
+    load    R1,1[R1]                ; p := (*p).next
+    jump    DeleteLoop[R0]
+DeleteDone
+    jump    CmdDone[R0]             ; go to finish command
+
+
+;--------------------------------------------------------------------
+; CmdSearch
+;--------------------------------------------------------------------
+
+CmdSearch
+    lea      R5,0[R0]              ; found (R5) = 0
+    load     R1,1[R1]              ; R1:= (*p).next
+SearchLoop 
+    cmp      R1,R0                 ; if R1 = R0 to see if it is nil
+    jumpeq   SearchDone[R0]        ; go to search not found
+    load     R7,0[R1]              ; R7:= (*p).value
+    cmp      R7,R2                 ; compare R7 with R2
+    jumpne   FoundFalse[R0]
+    lea      R5,1[R0]              ; found (R5) = 1
+FoundFalse
+    load     R1,1[R1]              ; p:= (*p).next
+    jump     SearchLoop[R0]
+SearchDone
+    cmp      R5,R0                 ; compare R5 with R0
+    jumpeq   PrintFalse[R0]        ; goto printfalse
+    lea      R1,2[R0]              ; trap code for write 
+    lea      R2,StringYes[R0]      ; address of "yes\n" 
+    lea      R3,4[R0]              ; length 
+    trap     R1,R2,R3              ; write "yes\n"
+    jump     CodeDone[R0]
+PrintFalse
+    lea      R1,2[R0]              ; trap code for write 
+    lea      R2,StringNo[R0]       ; address of "no\n" 
+    lea      R3,3[R0]              ; length 
+    trap     R1,R2,R3              ; write "no\n"
+CodeDone
+    jump     CmdDone[R0]           ; go to finish command
+
+StringYes
+    data   121   ;  'y'
+    data   101   ;  'e'
+    data   115   ;  's'
+    data    10   ;  '/n'
+StringNo
+    data  110    ;  'n'
+    data  111    ;  'o'
+    data    10   ;  '/n'
+
+;--------------------------------------------------------------------
+; CmdPrint
+;--------------------------------------------------------------------
+
+CmdPrint
+
+; Printing the elements of list
+; p:= *p.next
+    add    R6,R1,R0              ; R6:=R1
+    load   R6,1[R6]              ; R6:=(*p).next
+; Loop and if
+PrintLoop
+    cmp    R6,R0                 ; if R6 = R0 to see if it is nil
+    jumpeq FinishPrint[R0]       ; go to finish printing
+; print(*p).value
+    load   R1,0[R6]              ; R1:= (*p).value
+    store  R14,1[R14]            ; point to current frame
+    lea    R14,1[R14]            ; push stack frame
+    jal    R13,WriteValChar[R0]  ; write character
+; Printing Space
+    store  R14,1[R14]            ; point to current frame
+    lea    R14,1[R14]            ; push stack frame
+    jal    R13,WriteSpace[R0]    ; write space
+; p:=(*p).next
+    load   R6,1[R6]              ; R6:= (*p).next
+; goto Loop
+    jump   PrintLoop[R0]         ; go to start of printing
+FinishPrint
+; printing a new line
+    store   R14,1[R14]           ; point to current frame
+    lea     R14,1[R14]           ; push stack frame
+    jal     R13,WriteNewLine[R0] ; write newline
+;Ending the printing
+    jump    CmdDone[R0]          ; go to finish command
+
+
+; Some hints:
+
+; To print a character that's in R1, do this:
+;    store   R14,1[R14]           ; point to current frame
+;    lea     R14,1[R14]           ; push stack frame
+;    jal     R13,WriteValChar[R0] ; write character
+
+; To print a space character, do this:
+    store   R14,1[R14]            ; point to current frame
+    lea     R14,1[R14]            ; push stack frame
+    jal     R13,WriteSpace[R0]    ; write space
+
+; To print a newline, do this:
+    store   R14,1[R14]            ; point to current frame
+    lea     R14,1[R14]            ; push stack frame
+    jal     R13,WriteNewLine[R0]  ; write newline
+
+;--------------------------------------------------
+; BuildHeap
+;--------------------------------------------------
+
+; R4 = p
+; R5 = heaplimit
+; R6 = q
+; R7 = sizeof(Node) = 2
+; R11 = avail, global variable permanently kept in R11
+; R13 = return address
+
+; As BuildHeap is used only for initialization, it doesn't build a
+; stack frame or save and restore registers
+
+BuildHeap
+
+; Calculate the start and end addresses and list avail
+    lea    R4,AllocationArea[R0] ; p := address of allocation area
+    load   R5,CallStackSize[R0]  ; R5 := size of data before heap
+    add    R4,R4,R5          ; p := &heap
+    store  R4,HeapStart[R0]  ; HeapStart := address of heap
+    lea    R7,2[R0]          ; R7 := sizeof(Node) = 2
+    load   R5,HeapSize[R0]   ; R5 := HeapSize
+    add    R5,R4,R5          ; HeapLimit := p + HeapSize
+    sub    R5,R5,R7          ; HeapLimit := p + HeapSize - sizeof(Node)
+    add    R11,R4,R0         ; avail := p
+    store  R11,avail[R0]     ; save static variable avail
+
+; Iterate over heap area to construct avail list
+BuildHeapLoop
+    cmp    R4,R5             ; compare p, heaplimit
+    jumpge FinishHeap[R0]    ; if p >= heaplimit then goto FinishHeap
+    store  R0,0[R4]          ; (*p).value := 0
+    add    R6,R4,R7          ; q := p + 2 
+    store  R6,1[R4]          ; (*p).next := q
+    add    R4,R6,R0          ; p := q
+    jump   BuildHeapLoop[R0] ; goto BuildHeapLoop
+FinishHeap
+    store  R0,0[R4]          ; (*p).value := 0
+    store  R0,1[R4]          ; (*p).next := 0
+    jump   0[R13]            ; return
+
+;--------------------------------------------------------------------
+; NewNode: allocate a new node from the heap
+;--------------------------------------------------------------------
+
+; R1 = return result = pointer to new node
+; Uses avail, a static global variable
+; R13 = return address
+; R2 = avail
+
+; Structure of stack frame for NewNode
+; R1 is not saved as this is the function return value
+
+;   2[R14]  save R2
+;   1[R14]  return address
+;   0[R14]  pointer to previous stack frame
+
+NewNode
+; Create stack frame
+    store  R13,1[R14]        ; save return address
+    store  R2,2[R14]         ; save R2
+; Allocate new node
+    load   R2,avail[R0]      ; R2 := avail
+    cmp    R2,R0             ; compare avail, nil
+    jumpeq OutOfHeap[R0]     ; if avail = nil then goto OutOfHeap
+    add    R1,R2,R0          ; result = avail
+    load   R2,1[R2]          ; avail := avail.next
+    store  R2,avail[R0]      ; save avail
+; Return
+    load   R2,2[R14]         ; restore R2
+    load   R13,1[R14]        ; restore return address
+    load   R14,0[R14]        ; pop stack frame
+    jump   0[R13]            ; return
+  
+OutOfHeap
+    lea    R1,2[R0]          ; trap code for write
+    lea    R5,HeapMsg[R0]    ; R5 := address of error message
+    lea    R6,12[R0]         ; R6 := length of message
+    trap   R1,R5,R6          ; write error message
+    trap   R0,R0,R0          ; terminate
+HeapMsg
+; for character codes, see https://www.ascii.cl/htmlcodes.htm
+    data    79  ; 'O'
+    data   117  ; 'u'
+    data   116  ; 't'
+    data    32  ; ' '
+    data   111  ; 'o'
+    data   102  ; 'f'
+    data    32  ; ' '
+    data   104  ; 'h'
+    data   101  ; 'e'
+    data    97  ; 'a'
+    data   112  ; 'p'
+    data    10  ; '\n'
+
+;--------------------------------------------------------------------
+; ReleaseNode: deallocate a node and add it to the avail list
+;--------------------------------------------------------------------
+
+; argument R1 = q = pointer to node to release
+; Uses avail, a static global variable
+; R13 = return address
+
+; *** Your assembly language for ReleaseNode goes here ***
+
+ReleaseNode
+
+
+WriteValChar
+; Write a character in R1
+; Structure of stack frame
+;    6[R14]  origin of next frame
+;    5[R14]  local variable c
+;    4[R14]  save R3
+;    3[R14]  save R2
+;    2[R14]  save R1
+;    1[R14]  return address
+;    0[R14]  pointer to previous stack frame
+
+; Create stack frame
+    store   R13,1[R14]       ; save return address
+    store   R1,2[R14]        ; save R1
+    store   R2,3[R14]        ; save R2
+    store   R3,4[R14]        ; save R3
+
+    store   R1,5[R14]        ; local c := R1 = char to write
+    lea     R1,2[R0]         ; trap write code
+    lea     R2,5[R14]        ; address of character to write
+    lea     R3,1[R0]         ; one char
+    trap    R1,R2,R3         ; trap write
+
+    load    R1,2[R14]        ; restore R1
+    load    R2,3[R14]        ; restore R2
+    load    R3,4[R14]        ; restore R3
+    load    R13,1[R14]       ; restore return address
+    load    R14,0[R14]       ; pop stack frame
+    jump    0[R13]           ; return
+
+
+; Constant data for ShowInt
+Minus   data   45   ; '-'
+Space   data   32   ; ' '
+Hash    data   35   ; '#'
+NewLine data   10   ; '/n'
+Digits  data   48   ; '0'
+        data   49   ; '1'
+        data   50   ; '2'
+        data   51   ; '3'
+        data   52   ; '4'
+        data   53   ; '5'
+        data   54   ; '6'
+        data   55   ; '7'
+        data   56   ; '8'
+        data   57   ; '9'
+
+; Write a space
+WriteSpace
+; Structure of stack frame for WriteSpace
+
+;  5[R14]  origin of next frame
+;  4[R14]  save R3
+;  3[R14]  save R2
+;  2[R14]  save R1
+;  1[R14]  return address
+;  0[R14]  pointer to previous stack frame
+
+    store  R13,1[R14]        ; save return address
+    store  R1,2[R14]         ; save R1
+    store  R2,3[R14]         ; save R2
+    store  R3,4[R14]         ; save R3
+    lea    R1,2[R0]          ; trap write code
+    lea    R2,Space[R0]      ; address of character to write
+    lea    R3,1[R0]          ; write 1 character
+    trap   R1,R2,R3          ; write
+    load   R1,2[R14]         ; restore R1
+    load   R2,3[R14]         ; restore R2
+    load   R3,4[R14]         ; restore R3
+    load   R13,1[R14]        ; restore return address
+    load   R14,0[R14]        ; pop stack frame
+    jump   0[R13]            ; return
+
+; Write a newline
+WriteNewLine
+; Structure of stack frame for WriteSpace
+
+;  5[R14]  origin of next frame
+;  4[R14]  save R3
+;  3[R14]  save R2
+;  2[R14]  save R1
+;  1[R14]  return address
+;  0[R14]  pointer to previous stack frame
+
+    store  R13,1[R14]        ; save return address
+    store  R1,2[R14]         ; save R1
+    store  R2,3[R14]         ; save R2
+    store  R3,4[R14]         ; save R3
+    lea    R1,2[R0]          ; trap write code
+    lea    R2,NewLine[R0]    ; address of character to write
+    lea    R3,1[R0]          ; write 1 character
+    trap   R1,R2,R3          ; write
+    load   R1,2[R14]         ; restore R1
+    load   R2,3[R14]         ; restore R2
+    load   R3,4[R14]         ; restore R3
+    load   R13,1[R14]        ; restore return address
+    load   R14,0[R14]        ; pop stack frame
+    jump   0[R13]            ; return
+
+
+;--------------------------------------------------------------------
+; Data area
+;--------------------------------------------------------------------
+
+; AllocationArea is the address of all the memory space after the
+; program and the static data.  Large objects such as arrays, the call
+; stack, and the heap, are placed in the AllocationArea, and their
+; addresses must be calculated by the program.  This should be the
+; very last definition in the program.  Don't define anything after
+; after it: no data statements, no instructions.
+
+;--------------------------------------------------------------------
+; System variables
+;--------------------------------------------------------------------
+
+HeapStart  data  0   ; address of start of heap
+avail      data  0   ; list of available heapnodes
+
+;--------------------------------------------------------------------
+; Variables for the user program
+;--------------------------------------------------------------------
+
+InputPtr   data   0  ; points to next record of input data
+nlists     data   5  ; size of array of lists
+
+; Array of lists, indexed from 0 to nlists-1.  Each list is represented
+; by a header record with a dummy value and a next field, which is
+; initialized to nil.
+
+list      data   0   ; list[0].dummyvalue
+          data   0   ; list[0].next
+          data   0   ; list[1].dummyvalue
+          data   0   ; list[1].next
+          data   0   ; list[2].dummyvalue
+          data   0   ; list[2].next
+          data   0   ; list[3].dummyvalue
+          data   0   ; list[3].next
+          data   0   ; list[4].dummyvalue
+          data   0   ; list[4].next
+
+;--------------------------------------------------------------------
+; Input data
+;--------------------------------------------------------------------
+
+; Rather than reading input using I/O, we will define it as an array.
+; This makes it easier to run programs repeatedly with the same input
+; data, and to change the input by cutting it and pasting new input
+; data.
+
+; The input data to the program is an array of records: code, x, y
+
+;    code = 0:  terminate
+;    code = 1:  insert y into list[x]
+;    code = 2:  delete y from list[x]
+;    code = 3:  search for y in list[x]
+;    code = 4   print list x
+;    any other code is ignored
+
+InputData
+          data   1   ; insert 'c' into set[2]
+          data   2   ; set[2]
+          data  99   ; 'c'
+
+          data   4   ; print set[2]
+          data   2   ; set[2]
+          data   0
+
+          data   1   ; insert 'd' into set[4]
+          data   4   ; set[4]
+          data 100   ; 'd'
+
+          data   1   ; insert 's' into set[2]
+          data   2   ; set[2]
+          data 115   ; 's'
+
+          data   1   ; insert 'k' into set[3]
+          data   3   ; set[3]
+          data 107   ; 'k'
+
+          data   1   ; insert 'p' into set[2]
+          data   2   ; set[2]
+          data 112   ; 'p'
+
+          data   1   ; insert 'w' into set[2]
+          data   2   ; set[2]
+          data   119 ; 'w'
+
+          data   4   ; print set[2]
+          data   2   ; set[2]
+          data   0
+
+          data   1   ; insert 'x' into set[3]
+          data   3   ; set[3]
+          data 120   ; 'x'
+
+          data   1   ; insert 'b' into set[2]
+          data   2   ; set[2]
+          data  98   ; 'b'
+
+          data   1   ; insert 'm' into set[0]
+          data   0   ; set[0]
+          data 109   ; 'm'
+
+          data   4   ; print set[2]
+          data   2   ; set[2]
+          data   0
+
+          data   3   ; search for 'p' in set[2]
+          data   2   ; set[2]
+          data 112   ; 'p'
+
+          data   2   ; delete 'p' from set[2]
+          data   2   ; set[2]
+          data 112   ; 'p'
+
+          data   4   ; print set[2]
+          data   2   ; set[2]
+          data   0
+
+
+          data   1   ; insert 's' into set[0]
+          data   0   ; set[0]
+          data 115   ; 's'
+
+          data   3   ; search for 'p' in set[2]
+          data   2   ; set[2]
+          data 112   ; 'p'
+
+          data   4   ; print set[0]
+          data   0   ; set[0]
+          data   0
+
+          data   4   ; print set[1]
+          data   1   ; set[1]
+          data   0
+
+          data   4   ; print set[2]
+          data   2   ; set[2]
+          data   0
+
+          data   4   ; print set[3]
+          data   3   ; set[3]
+          data   0
+
+          data   4   ; print set[4]
+          data   4   ; set[4]
+          data   0
+
+          data  -3   ; negative code is invalid
+          data   0
+          data   0
+
+          data   9   ; high code is invalid
+          data   0
+          data   0
+
+          data   0   ; terminate
+          data   0
+          data   0
+
+;--------------------------------------------------------------------
+; Constant parameters and allocation area
+;--------------------------------------------------------------------
+
+CallStackSize   data   500  ; array space needed before the heap
+HeapSize        data   500  ; number of words allocated for heap
+CallStack       data   0
+AllocationArea  data   0    ; contains call stack and heap
+
+;--------------------------------------------------------------------
+; Don't define anything after this
+;--------------------------------------------------------------------
